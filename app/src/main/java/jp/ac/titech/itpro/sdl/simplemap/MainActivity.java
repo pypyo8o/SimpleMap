@@ -7,10 +7,14 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.TextViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.view.View;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -19,6 +23,7 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -34,6 +39,9 @@ public class MainActivity extends AppCompatActivity implements
     private LocationRequest locationRequest;
     private boolean requestingLocationUpdate;
 
+    private Button yourPlace;  //added
+    private Location past_location; //added
+
     private enum UpdatingState {STOPPED, REQUESTING, STARTED}
 
     private UpdatingState state = UpdatingState.STOPPED;
@@ -48,13 +56,26 @@ public class MainActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map_fragment);
+        final MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map_fragment);
         mapFragment.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(GoogleMap map) {
                 map.moveCamera(CameraUpdateFactory.zoomTo(15f));
                 googleMap = map;
             }
+        });
+
+        yourPlace = (Button)findViewById(R.id.place_button); //added
+        yourPlace.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                Log.d(TAG, "onClick");
+                googleMap.animateCamera(CameraUpdateFactory
+                        .newLatLng(new LatLng(past_location.getLatitude(), past_location.getLongitude())));
+
+            }
+
+
         });
 
         googleApiClient = new GoogleApiClient.Builder(this)
@@ -86,6 +107,9 @@ public class MainActivity extends AppCompatActivity implements
             state = UpdatingState.REQUESTING;
     }
 
+
+
+
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause");
@@ -108,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements
             startLocationUpdate(true);
     }
 
+
     @Override
     public void onConnectionSuspended(int i) {
         Log.d(TAG, "onConnectionSuspented");
@@ -121,8 +146,8 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onLocationChanged(Location location) {
         Log.d(TAG, "onLocationChanged: " + location);
-        googleMap.animateCamera(CameraUpdateFactory
-                .newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+        past_location = location;
+
     }
 
     @Override
@@ -158,4 +183,5 @@ public class MainActivity extends AppCompatActivity implements
         LocationServices.FusedLocationApi.removeLocationUpdates(googleApiClient, this);
         state = UpdatingState.STOPPED;
     }
+
 }
